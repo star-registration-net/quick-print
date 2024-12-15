@@ -1,0 +1,9 @@
+{
+  "actions": {
+    "savePDF": true,
+    "print": false
+  },
+  "printerName": "EPSON_L3110_Series",
+  "defaultFormat": "A4",
+  "outputFolder": "Downloads/Print"
+} 
