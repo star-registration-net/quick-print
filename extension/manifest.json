@@ -1,21 +1,27 @@
 {
   "manifest_version": 3,
-  "name": "Quick Print",
+  "name": "SR Print",
   "version": "1.0",
-  "description": "Alt+click to print links directly",
+  "description": "Print PDFs directly with QuickPrint links or Alt+click",
   "permissions": [
     "activeTab",
-    "cookies"
+    "cookies",
+    "scripting"
   ],
-  "background": {
-    "service_worker": "background.js"
-  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "css": ["styles.css"]
     }
   ],
+  "web_accessible_resources": [{
+    "resources": ["printer.png"],
+    "matches": ["<all_urls>"]
+  }],
+  "background": {
+    "service_worker": "background.js"
+  },
   "host_permissions": [
     "<all_urls>"
   ]

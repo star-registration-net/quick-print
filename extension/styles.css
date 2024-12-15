@@ -1,0 +1,30 @@
+.quick-print-link {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    padding: 2px;
+    cursor: pointer;
+    text-decoration: none;
+    vertical-align: middle;
+}
+
+.quick-print-link:hover {
+    opacity: 0.8;
+}
+
+.quick-print-link:active {
+    opacity: 0.6;
+}
+
+.print-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+    transition: opacity 0.2s ease;
+}
+
+/* For better vertical alignment with text */
+.quick-print-link svg {
+    display: block;
+    margin-top: 1px;
+} 
