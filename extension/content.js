@@ -19,10 +19,28 @@ function createQuickPrintLink(url) {
     
     link.appendChild(img);
     
+    let isDisabled = false;
+    
     link.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        
+        if (isDisabled) return;
+        
+        // Disable the button and change color
+        isDisabled = true;
+        link.classList.add('printing');
+        link.title = 'Printing...';
+        
+        // Send print request
         sendToPrint(url);
+        
+        // Re-enable after 5 seconds
+        setTimeout(() => {
+            isDisabled = false;
+            link.classList.remove('printing');
+            link.title = 'Quick Print';
+        }, 5000);
     });
     
     return link;
