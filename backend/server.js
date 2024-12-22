@@ -35,7 +35,7 @@ app.get('/printers', async (req, res) => {
 // Endpoint to handle PDF printing
 app.post('/print', async (req, res) => {
   try {
-    const { url, cookies, printer } = req.body;
+    const { url, cookies, printer, ippConfig } = req.body;
     
     if (!url) {
       return res.status(400).json({ error: 'URL is required' });
@@ -45,7 +45,7 @@ app.post('/print', async (req, res) => {
     const homeDir = os.homedir();
     const printFolder = path.join(homeDir, 'Downloads', 'Print');
     
-    const result = await printURL(url, cookies || [], printer);
+    const result = await printURL(url, cookies || [], printer, ippConfig);
     
     res.json(result);
   } catch (error) {
