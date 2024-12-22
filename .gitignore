@@ -24,3 +24,5 @@ Thumbs.db
 
 # PDF output directory
 prints/ 
+
+backend/node_modules/

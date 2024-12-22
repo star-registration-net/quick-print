@@ -1,17 +1,36 @@
 import fetch from 'node-fetch';
+import { tmpdir } from 'os';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
+import { platform } from 'process';
+
+// Import platform-specific printing modules
+const isWindows = platform === 'win32';
+let print, getPrinters;
+if (isWindows) {
+    const pdfToPrinter = await import('pdf-to-printer');
+    print = pdfToPrinter.print;
+    getPrinters = pdfToPrinter.getPrinters;
+} else {
+    const unixPrint = await import('unix-print');
+    print = unixPrint.print;
+    getPrinters = unixPrint.getPrinters;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function printURL(url, cookies, printFolder) {
-    console.log('=== PDF Download Request ===');
+async function printURL(url, cookies) {
+    console.log('=== PDF Print Request ===');
     console.log('PDF URL:', url);
     console.log('Cookies count:', cookies.length);
     
     try {
+        // List available printers
+        const printers = await getPrinters();
+        console.log('Available printers:', printers);
+
         // Format cookies for fetch
         const cookieHeader = cookies.map(cookie => 
             `${cookie.name}=${cookie.value}`
@@ -25,7 +44,7 @@ async function printURL(url, cookies, printFolder) {
         };
         console.log(headers);
 
-        // Download PDF directly using fetch with proper headers
+        // Download PDF
         const response = await fetch(url, { headers });
 
         console.log('Response status:', response.status);
@@ -35,41 +54,36 @@ async function printURL(url, cookies, printFolder) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Get the PDF buffer directly from response
+        // Get the PDF buffer
         const pdfBuffer = await response.buffer();
         console.log('Downloaded PDF size:', pdfBuffer.length, 'bytes');
 
-        // Generate filename and path
-        const filename = `print-${Date.now()}.pdf`;
-        const pdfPath = path.join(printFolder, filename);
-
-        // Write PDF file
-        console.log('Writing PDF to:', pdfPath);
-        await fs.writeFile(pdfPath, pdfBuffer);
-
-        // Verify file
-        const fileStats = await fs.stat(pdfPath);
-        console.log('PDF file stats:', {
-            path: pdfPath,
-            size: fileStats.size,
-            created: fileStats.birthtime
-        });
-
-        if (fileStats.size < 100) {
+        if (pdfBuffer.length < 100) {
             throw new Error('Downloaded PDF is too small, likely empty or invalid');
         }
 
-        console.log('=== PDF Download Complete ===');
+        // Create temporary file
+        const tempFile = path.join(tmpdir(), `print-${Date.now()}.pdf`);
+        await fs.writeFile(tempFile, pdfBuffer);
+
+        try {
+            // Print the PDF
+            console.log('Printing PDF...');
+            await print(tempFile);
+            console.log('Print job submitted successfully');
+        } finally {
+            // Clean up temp file
+            await fs.unlink(tempFile).catch(console.error);
+        }
+
+        console.log('=== Print Job Submitted ===');
         return {
             success: true,
-            filename,
-            pdfPath,
-            url,
-            fileSize: fileStats.size
+            url
         };
 
     } catch (error) {
-        console.error('Download error:', error);
+        console.error('Print error:', error);
         console.error('Error details:', {
             message: error.message,
             url: url,
