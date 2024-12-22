@@ -1,90 +1,61 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Printer Selection</title>
     <style>
         body {
             width: 300px;
             padding: 15px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            margin: 0;
         }
-        
+
         h2 {
-            margin: 0 0 15px 0;
+            margin: 0 0 15px;
             font-size: 16px;
             color: #333;
-            font-weight: 500;
         }
-        
+
         .select-wrapper {
-            position: relative;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
-        
+
         select {
             width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
             font-size: 14px;
-            appearance: none;
-            background-color: white;
+        }
+
+        button {
+            width: 100%;
+            padding: 8px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
-            color: #333;
+            font-size: 14px;
+            margin-bottom: 10px;
         }
-        
-        .select-wrapper::after {
-            content: "▼";
-            font-size: 12px;
-            color: #666;
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-        }
-        
-        select:disabled {
-            background-color: #f5f5f5;
+
+        button:disabled {
+            background-color: #cccccc;
             cursor: not-allowed;
         }
-        
+
         .status {
             font-size: 13px;
-            color: #666;
             margin-top: 10px;
-            min-height: 20px;
             text-align: center;
         }
-        
+
         .error {
             color: #dc3545;
         }
-        
+
         .success {
             color: #28a745;
-        }
-        
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #4285f4;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: background-color 0.2s;
-        }
-        
-        button:hover {
-            background-color: #3367d6;
-        }
-        
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
         }
 
         .loading {
@@ -97,6 +68,64 @@
             font-size: 13px;
             text-align: center;
         }
+
+        .ipp-config {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            display: none;
+        }
+
+        .ipp-config.visible {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+
+        .config-toggle {
+            font-size: 13px;
+            color: #0066cc;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-top: 10px;
+            display: block;
+            text-align: center;
+        }
+
+        .config-toggle:hover {
+            color: #004499;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        #configureButton {
+            background-color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -106,8 +135,29 @@
             <option value="">Loading printers...</option>
         </select>
     </div>
-    <button id="saveButton" disabled>Save Selection</button>
+    <div class="button-group">
+        <button id="saveButton" disabled>Save Selection</button>
+        <button id="configureButton">Configure</button>
+    </div>
     <div id="status" class="status"></div>
+
+    <div id="ippConfig" class="ipp-config">
+        <h2>IPP Configuration</h2>
+        <div class="form-group">
+            <label for="ippHost">IP Address:</label>
+            <input type="text" id="ippHost" placeholder="e.g., 192.168.1.100">
+        </div>
+        <div class="form-group">
+            <label for="ippPort">Port:</label>
+            <input type="number" id="ippPort" placeholder="e.g., 631" value="631">
+        </div>
+        <div class="form-group">
+            <label for="ippPath">Path:</label>
+            <input type="text" id="ippPath" placeholder="e.g., /ipp/print">
+        </div>
+        <button id="saveConfigButton">Save Configuration</button>
+    </div>
+
     <script src="popup.js"></script>
 </body>
 </html> 
