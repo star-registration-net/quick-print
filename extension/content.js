@@ -38,87 +38,44 @@ function sendToPrint(url) {
 
 // Function to add QuickPrint links to specific elements
 function addQuickPrintLinks() {
-    // Process buttons with specific text content
-    const buttons = document.querySelectorAll('button[title="Open A4"], button[title="Open Letter"], button[title="Open A4 (Logo)"], button[title="Open Letter (Logo)"]');
-    buttons.forEach(button => {
-        // Skip if already processed or if there's already a QuickPrint link next to it
-        if (button.dataset.quickPrintProcessed || 
-            button.nextElementSibling?.classList.contains('quick-print-link')) {
-            return;
-        }
-        
-        const onclick = button.getAttribute('onclick');
+    // Process only the first "Open A4" button
+    const mapA4Button = document.querySelector('button[title="Open A4"]');
+    if (mapA4Button && !mapA4Button.dataset.quickPrintProcessed) {
+        const onclick = mapA4Button.getAttribute('onclick');
         if (onclick && onclick.includes('window.open')) {
             const url = extractUrlFromWindowOpen(onclick);
             if (url) {
-                button.dataset.quickPrintProcessed = 'true';
-                button.insertAdjacentElement('afterend', createQuickPrintLink(url));
+                mapA4Button.dataset.quickPrintProcessed = 'true';
+                mapA4Button.insertAdjacentElement('afterend', createQuickPrintLink(url));
             }
         }
-    });
-
-    // Process links with specific text or title
-    const linkSelectors = [
-        'a[title="Open A4"]',
-        'a[title="Open Letter"]',
-        'a[title="Open A4 (Logo)"]',
-        'a[title="Open Letter (Logo)"]',
-        'a:contains("Open A4")',
-        'a:contains("Open Letter")',
-        'a:contains("Open A4 (Logo)")',
-        'a:contains("Open Letter (Logo)")'
-    ].join(', ');
-
-    // Custom function to find links by text content
-    function findLinksByText(text) {
-        return Array.from(document.getElementsByTagName('a')).filter(a => 
-            a.textContent.trim() === text
-        );
     }
 
-    // Process all types of links
-    const textLinks = [
-        ...findLinksByText('Open A4'),
-        ...findLinksByText('Open Letter'),
-        ...findLinksByText('Open A4 (Logo)'),
-        ...findLinksByText('Open Letter (Logo)'),
-        ...document.querySelectorAll(linkSelectors)
-    ];
-
-    // Remove duplicates
-    const processedLinks = new Set();
-    textLinks.forEach(link => {
-        // Skip if already processed or duplicate
-        if (link.dataset.quickPrintProcessed || 
-            link.nextElementSibling?.classList.contains('quick-print-link') ||
-            processedLinks.has(link)) {
-            return;
-        }
+    // If no button found, try finding the first "Open A4" link
+    if (!mapA4Button) {
+        const mapA4Link = Array.from(document.getElementsByTagName('a')).find(a => 
+            a.textContent.trim() === 'Open A4' || a.title === 'Open A4'
+        );
         
-        processedLinks.add(link);
-        if (link.href) {
-            link.dataset.quickPrintProcessed = 'true';
-            link.insertAdjacentElement('afterend', createQuickPrintLink(link.href));
+        if (mapA4Link && !mapA4Link.dataset.quickPrintProcessed && 
+            !mapA4Link.nextElementSibling?.classList.contains('quick-print-link')) {
+            mapA4Link.dataset.quickPrintProcessed = 'true';
+            if (mapA4Link.href) {
+                mapA4Link.insertAdjacentElement('afterend', createQuickPrintLink(mapA4Link.href));
+            }
         }
-    });
+    }
 }
 
 // Function to check if target elements exist
 function checkForElements() {
-    const hasButtons = document.querySelector(
-        'button[title="Open A4"], button[title="Open Letter"], ' +
-        'button[title="Open A4 (Logo)"], button[title="Open Letter (Logo)"]'
-    ) !== null;
-
-    const hasLinks = Array.from(document.getElementsByTagName('a')).some(a => {
+    const hasMapA4Button = document.querySelector('button[title="Open A4"]') !== null;
+    const hasMapA4Link = Array.from(document.getElementsByTagName('a')).some(a => {
         const text = a.textContent.trim();
-        return text === 'Open A4' || 
-               text === 'Open Letter' || 
-               text === 'Open A4 (Logo)' || 
-               text === 'Open Letter (Logo)';
+        return text === 'Open A4' || a.title === 'Open A4';
     });
 
-    return hasButtons || hasLinks;
+    return hasMapA4Button || hasMapA4Link;
 }
 
 // Function to initialize the extension
