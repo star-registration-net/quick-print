@@ -4,10 +4,15 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
 import { platform } from 'process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // Import platform-specific printing modules
 const isWindows = platform === 'win32';
 let print, getPrinters;
+
 if (isWindows) {
     const pdfToPrinter = await import('pdf-to-printer');
     print = pdfToPrinter.print;
@@ -15,21 +20,46 @@ if (isWindows) {
 } else {
     const unixPrint = await import('unix-print');
     print = unixPrint.print;
-    getPrinters = unixPrint.getPrinters;
+    // Custom getPrinters function for macOS
+    getPrinters = async () => {
+        try {
+            // Get list of printers
+            const { stdout } = await execAsync('lpstat -p | cut -d" " -f2');
+            const printerNames = stdout.trim().split('\n').filter(Boolean);
+            
+            // Get default printer
+            const { stdout: defaultPrinter } = await execAsync('lpstat -d | cut -d":" -f2').catch(() => ({ stdout: '' }));
+            const defaultPrinterName = defaultPrinter.trim();
+
+            return printerNames.map(name => ({
+                name: name,
+                isDefault: name === defaultPrinterName
+            }));
+        } catch (error) {
+            console.error('Error getting printers:', error);
+            return [];
+        }
+    };
 }
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function printURL(url, cookies) {
+async function printURL(url, cookies, selectedPrinter) {
     console.log('=== PDF Print Request ===');
     console.log('PDF URL:', url);
     console.log('Cookies count:', cookies.length);
+    console.log('Selected printer:', selectedPrinter);
     
     try {
         // List available printers
         const printers = await getPrinters();
         console.log('Available printers:', printers);
+
+        // Verify selected printer exists
+        if (selectedPrinter && !printers.some(p => p.name === selectedPrinter)) {
+            throw new Error(`Selected printer "${selectedPrinter}" not found`);
+        }
 
         // Format cookies for fetch
         const cookieHeader = cookies.map(cookie => 
@@ -67,9 +97,22 @@ async function printURL(url, cookies) {
         await fs.writeFile(tempFile, pdfBuffer);
 
         try {
-            // Print the PDF
+            // Print the PDF with selected printer
             console.log('Printing PDF...');
-            await print(tempFile);
+            if (isWindows) {
+                await print(tempFile, selectedPrinter ? { printer: selectedPrinter } : undefined);
+            } else {
+                // For macOS, use lp command directly if unix-print fails
+                try {
+                    await print(tempFile, selectedPrinter ? { printer: selectedPrinter } : undefined);
+                } catch (printError) {
+                    console.log('Falling back to lp command...');
+                    const cmd = selectedPrinter 
+                        ? `lp -d "${selectedPrinter}" "${tempFile}"`
+                        : `lp "${tempFile}"`;
+                    await execAsync(cmd);
+                }
+            }
             console.log('Print job submitted successfully');
         } finally {
             // Clean up temp file
@@ -79,7 +122,8 @@ async function printURL(url, cookies) {
         console.log('=== Print Job Submitted ===');
         return {
             success: true,
-            url
+            url,
+            printer: selectedPrinter || 'default'
         };
 
     } catch (error) {
@@ -93,4 +137,4 @@ async function printURL(url, cookies) {
     }
 }
 
-export { printURL };
+export { printURL, getPrinters };
