@@ -8,22 +8,49 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
-
-// Import platform-specific printing modules
 const isWindows = platform === 'win32';
-let print, getPrinters;
 
-if (isWindows) {
-    const pdfToPrinter = await import('pdf-to-printer');
-    print = pdfToPrinter.print;
-    getPrinters = pdfToPrinter.getPrinters;
-} else {
-    const unixPrint = await import('unix-print');
-    print = unixPrint.print;
-    // Custom getPrinters function for macOS
-    getPrinters = async () => {
-        try {
-            // Get list of printers
+// Initialize the printer module based on platform
+let printerModule;
+
+async function initializePrinterModule() {
+    if (isWindows) {
+        printerModule = await import('pdf-to-printer');
+    } else {
+        printerModule = await import('unix-print');
+    }
+}
+
+// Initialize the module when this file is imported
+await initializePrinterModule();
+
+async function getPrinters() {
+    try {
+        if (isWindows) {
+            try {
+                // First try with pdf-to-printer
+                const printers = await printerModule.default.getPrinters();
+                return printers.map(printer => ({
+                    name: printer.name,
+                    isDefault: printer.isDefault || false
+                }));
+            } catch (error) {
+                console.log('Falling back to PowerShell for printer detection...');
+                // Fallback to PowerShell command with proper syntax
+                const { stdout } = await execAsync('powershell.exe -Command "Get-WmiObject -Class Win32_Printer | Select-Object -ExpandProperty Name"');
+                const printerNames = stdout.trim().split('\r\n').filter(Boolean);
+
+                // Get default printer using WMI
+                const { stdout: defaultPrinter } = await execAsync('powershell.exe -Command "Get-WmiObject -Class Win32_Printer | Where-Object {$_.Default -eq $true} | Select-Object -ExpandProperty Name"').catch(() => ({ stdout: '' }));
+                const defaultPrinterName = defaultPrinter.trim();
+
+                return printerNames.map(name => ({
+                    name: name,
+                    isDefault: name === defaultPrinterName
+                }));
+            }
+        } else {
+            // Get list of printers for macOS/Linux
             const { stdout } = await execAsync('lpstat -p | cut -d" " -f2');
             const printerNames = stdout.trim().split('\n').filter(Boolean);
             
@@ -35,15 +62,12 @@ if (isWindows) {
                 name: name,
                 isDefault: name === defaultPrinterName
             }));
-        } catch (error) {
-            console.error('Error getting printers:', error);
-            return [];
         }
-    };
+    } catch (error) {
+        console.error(`Error getting ${isWindows ? 'Windows' : 'Unix'} printers:`, error);
+        return [];
+    }
 }
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function printURL(url, cookies, selectedPrinter) {
     console.log('=== PDF Print Request ===');
@@ -100,11 +124,10 @@ async function printURL(url, cookies, selectedPrinter) {
             // Print the PDF with selected printer
             console.log('Printing PDF...');
             if (isWindows) {
-                await print(tempFile, selectedPrinter ? { printer: selectedPrinter } : undefined);
+                await printerModule.default.print(tempFile, selectedPrinter ? { printer: selectedPrinter } : undefined);
             } else {
-                // For macOS, use lp command directly if unix-print fails
                 try {
-                    await print(tempFile, selectedPrinter ? { printer: selectedPrinter } : undefined);
+                    await printerModule.print(tempFile, selectedPrinter ? { printer: selectedPrinter } : undefined);
                 } catch (printError) {
                     console.log('Falling back to lp command...');
                     const cmd = selectedPrinter 
