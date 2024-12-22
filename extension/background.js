@@ -4,8 +4,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const url = new URL(message.url);
     chrome.cookies.getAll({ domain: url.hostname }, async (cookies) => {
       try {
-        // Get selected printer from storage
-        const { selectedPrinter } = await chrome.storage.sync.get(['selectedPrinter']);
+        // Get selected printer and printer configs from storage
+        const { selectedPrinter, printerConfigs } = await chrome.storage.sync.get(['selectedPrinter', 'printerConfigs']);
+        
+        // Get IPP config for selected printer if it exists
+        const ippConfig = selectedPrinter && printerConfigs ? printerConfigs[selectedPrinter] : null;
         
         const response = await fetch('http://localhost:3000/print', {
           method: 'POST',
@@ -15,7 +18,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           body: JSON.stringify({ 
             url: message.url,
             cookies: cookies,
-            printer: selectedPrinter
+            printer: selectedPrinter,
+            ippConfig: ippConfig
           })
         });
         
