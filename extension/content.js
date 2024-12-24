@@ -56,33 +56,16 @@ function sendToPrint(url) {
 
 // Function to add QuickPrint links to specific elements
 function addQuickPrintLinks() {
-    // Process only the first "Open A4" button
-    const mapA4Button = document.querySelector('button[title="Open A4"]');
-    if (mapA4Button && !mapA4Button.dataset.quickPrintProcessed) {
-        const onclick = mapA4Button.getAttribute('onclick');
-        if (onclick && onclick.includes('window.open')) {
-            const url = extractUrlFromWindowOpen(onclick);
-            if (url) {
-                mapA4Button.dataset.quickPrintProcessed = 'true';
-                mapA4Button.insertAdjacentElement('afterend', createQuickPrintLink(url));
-            }
+    const buttons = document.querySelectorAll('button[onclick*="generateMap"]');
+    buttons.forEach( function(button){
+        if (button.dataset.quickPrintProcessed) {
+            return;
         }
-    }
 
-    // If no button found, try finding the first "Open A4" link
-    if (!mapA4Button) {
-        const mapA4Link = Array.from(document.getElementsByTagName('a')).find(a => 
-            a.textContent.trim() === 'Open A4' || a.title === 'Open A4'
-        );
-        
-        if (mapA4Link && !mapA4Link.dataset.quickPrintProcessed && 
-            !mapA4Link.nextElementSibling?.classList.contains('quick-print-link')) {
-            mapA4Link.dataset.quickPrintProcessed = 'true';
-            if (mapA4Link.href) {
-                mapA4Link.insertAdjacentElement('afterend', createQuickPrintLink(mapA4Link.href));
-            }
-        }
-    }
+        button.dataset.quickPrintProcessed = 'true';
+        const url = extractUrlFromWindowOpen(button.getAttribute('onclick'));
+        button.insertAdjacentElement('afterend', createQuickPrintLink(url));
+    });
 }
 
 // Function to check if target elements exist
