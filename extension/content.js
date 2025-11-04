@@ -56,14 +56,14 @@ function sendToPrint(url) {
 
 // Function to add QuickPrint links to specific elements
 function addQuickPrintLinks() {
-    const buttons = document.querySelectorAll('button[onclick*="generateMap"]');
+    const buttons = document.querySelectorAll('button[onclick*="generateMap"], a[href*="certificate/bulk/type"]');
     buttons.forEach( function(button){
         if (button.dataset.quickPrintProcessed) {
             return;
         }
 
         button.dataset.quickPrintProcessed = 'true';
-        const url = extractUrlFromWindowOpen(button.getAttribute('onclick'));
+        const url = button.tagName === 'A' ? button.href : extractUrlFromWindowOpen(button.getAttribute('onclick'));
         button.insertAdjacentElement('afterend', createQuickPrintLink(url));
     });
 }
@@ -84,6 +84,12 @@ function initializeExtension() {
     if (checkForElements()) {
         addQuickPrintLinks();
     }
+    const m2DownloadLinks = setInterval(function(){
+        if (document.querySelector('[data-bind*="sales_order_grid"] .data-row')) {
+            addQuickPrintLinks();
+            clearInterval(m2DownloadLinks);
+        }
+    }, 1000);
 }
 
 // Initial load
